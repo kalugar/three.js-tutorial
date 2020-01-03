@@ -7,6 +7,7 @@ var scene = new THREE.Scene();
         renderer.setClearColor(0xffffff,1.0);
         document.body.appendChild(renderer.domElement);
 
+
         //Creating a camera with basic position
         var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
         camera.position.set(-30,40,30);
@@ -16,23 +17,11 @@ var scene = new THREE.Scene();
         var ambientLight = new THREE.AmbientLight(0x0c0c0c, 0.5);
         scene.add(ambientLight);
 
-        //Creating the base plane
-        var planeGeometry = new THREE.PlaneGeometry(60,40,1,1);
-        var planeMaterial = new THREE.MeshLambertMaterial({color: 0xffffff});
-        var plane = new THREE.Mesh(planeGeometry,planeMaterial);
-        plane.receiveShadow  = true;
-
-        plane.rotation.x=-0.5*Math.PI;
-        plane.position.x=0;
-        plane.position.y=0;
-        plane.position.z=0;
-
-        scene.add(plane);
-
         //Creating the cube edges
-        var material = new THREE.LineBasicMaterial({color: 0xffffff});
+        var material = new THREE.MeshBasicMaterial({color:  Math.random() * 0xffffff});
         var geometry = new THREE.Geometry();
-        var createLine= function (a1, b1, c1, a2, b2, c2){
+
+        var createLine= (a1, b1, c1, a2, b2, c2) => {
             geometry.vertices.push(
                 new THREE.Vector3( a1, b1, c1 ),
                 new THREE.Vector3( a2, b2, c2 ),
@@ -47,9 +36,9 @@ var scene = new THREE.Scene();
         createLine(0,5,5,0,5,0);
         createLine(5,5,0,5,5,5);
 
-        var cube = new THREE.Line( geometry, material );
+        var cube = new THREE.Line( geometry, material);
 
-        //Creating spheres placed on its vertexes
+        // Creating spheres placed on its vertexes
         var targetList= [];
         var targets=[];
         for(let i=1; i<=8; i++) {
@@ -64,8 +53,7 @@ var scene = new THREE.Scene();
             sphere.name=targets[key];
             cube.add(sphere);
         }
-
-        var changeSpherePosition = function(nm,a,b,c) {
+        var changeSpherePosition = (nm,a,b,c) => {
             cube.getObjectByName(nm).position.set(a,b,c);
         };
         changeSpherePosition("sphere1",0,0,0);
@@ -83,14 +71,25 @@ var scene = new THREE.Scene();
         cube.position.y = 10;
         scene.add( cube );
 
+        //Creating controls
+        orbitControl = new THREE.OrbitControls( camera, renderer.domElement );
+        var controls = new THREE.DragControls( targetList, camera, renderer.domElement );
+
+        controls.addEventListener( 'dragstart', function ( event ) {
+           cube.material.color=event.object.material.color;
+        } );
+        controls.addEventListener( 'dragend', function ( event ) {
+            console.log('Color changed to: r: '+event.object.material.color.r+', g: '+event.object.material.color.g+', b: '+event.object.material.color.b)
+        });
+
         //Objects animating
         var animate = function () {
             requestAnimationFrame( animate );
-            plane.rotation.z +=0.002
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
-            cube.rotation.z += 0.002;
+            // cube.rotation.x += 0.01;
+            // cube.rotation.y += 0.01;
+            // cube.rotation.z += 0.002;
 
             renderer.render( scene, camera );
         };
+
         animate();
