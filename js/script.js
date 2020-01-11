@@ -12,77 +12,99 @@ var scene = new THREE.Scene();
         camera.position.set(-30,40,30);
         camera.lookAt(scene.position);
 
-        // Creating the cube edges
-        var material = new THREE.MeshBasicMaterial({color:  Math.random() * 0xffffff});
-        var geometry = new THREE.Geometry();
+        // Creating the vertex' coordinates
+        let cubeVertex = [
+            [0,0,0], [0,0,5],[5,0,5],[5,0,0],
+            [0,5,0], [0,5,5],[5,5,5],[5,5,0]
+        ];
+        let cubeEdges = [
+            [cubeVertex[0],cubeVertex[1]],
+            [cubeVertex[1],cubeVertex[2]],
+            [cubeVertex[2],cubeVertex[3]],
+            [cubeVertex[3],cubeVertex[0]],
+            [cubeVertex[4],cubeVertex[5]],
+            [cubeVertex[5],cubeVertex[6]],
+            [cubeVertex[6],cubeVertex[7]],
+            [cubeVertex[7],cubeVertex[4]],
+            [cubeVertex[4],cubeVertex[0]],
+            [cubeVertex[5],cubeVertex[1]],
+            [cubeVertex[6],cubeVertex[2]],
+            [cubeVertex[7],cubeVertex[3]],
+        ];
 
-        var createLine= (x1, y1, z1, x2, y2, z2) => {
-            geometry.vertices.push(
-                new THREE.Vector3( x1, y1, z1 ),
-                new THREE.Vector3( x2, y2, z2 ),
-            );
-        };
-        createLine(0,0,0,0,5,0);
-        createLine(5,5,0,5,0,0);
-        createLine(5,0,5,5,5,5);
-        createLine(0,5,5,0,0,5);
-        createLine(0,0,0,5,0,0);
-        createLine(5,0,5,0,0,5);
-        createLine(0,5,5,0,5,0);
-        createLine(5,5,0,5,5,5);
+        let edge=edgeGeometry=[];
+        let sphere= [];
+        let targetList=[];
+        let controls = new function() {
+            //Creating initial rotation
+            this.rotationSpeed = 0.005;
 
-        var cube = new THREE.Line( geometry, material);
+            //Creating cubes' edges
+            this.addCube = function() {
 
-        // Creating spheres placed on cube's vertexes
-        var targetList= [];
-        var targets=[];
-        for(let i=1; i<=8; i++) {
-            targets["name"+i]="sphere"+i
+                let cubeCreation=()=> {
+                    for (let i = 0; i < cubeEdges.length; i++) {
+                        edgeGeometry[i] = new THREE.Geometry();
+                        edgeGeometry[i].vertices.push(new THREE.Vector3(cubeEdges[i][0][0], cubeEdges[i][0][1], cubeEdges[i][0][2]));
+                        edgeGeometry[i].vertices.push(new THREE.Vector3(cubeEdges[i][1][0], cubeEdges[i][1][1], cubeEdges[i][1][2]));
+                        let edgesMaterial = new THREE.LineBasicMaterial({color: 0x000000});
+                        edge[i] = new THREE.Line(edgeGeometry[i], edgesMaterial);
+                    }
+                    return edge
+                }
+
+                // Creating spheres placed on cube's vertexes
+
+                let sphereCreation=()=>{
+                    for(let i=0; i<cubeVertex.length; i++) {
+                        sphereGeometry=new THREE.SphereGeometry (0.6,32,32);
+                        var sphereMaterial=new THREE.MeshBasicMaterial({color:  Math.random() * 0xffffff});
+                        sphere[i] = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                        sphere[i].position.set(cubeEdges[i][0][0], cubeEdges[i][0][1], cubeEdges[i][0][2])
+                    }
+                    return sphere;
+                }
+                targetList.push(this.sphere);
+                console.log(sphere);
+                console.log(targetList);
+                //Assembling the final object
+                let finalCube=new THREE.Group();
+                    for (let i = 0; i < cubeCreation().length; i++)
+                        finalCube.add( cubeCreation()[i]);
+
+                    for (let i=0; i < sphereCreation().length; i++)
+                        finalCube.add( sphereCreation()[i]);
+                    finalCube.position.set(Math.random()*20, Math.random()*20, Math.random()*20);
+                    scene.add(finalCube)
+                }
+            //Creating remove object function
+            this.removeCube = function() {
+                let allChildren = scene.children;
+                if (allChildren.length>0) {
+                    var lastObject = allChildren[allChildren.length-1];
+                }
+                scene.remove(lastObject);
+            }
+
         }
+        //Adding GUI elements
+        var gui = new dat.GUI();
 
-        for(var key in targets) {
-            var sphereGeometry=new THREE.SphereGeometry (0.6,32,32);
-            var sphereMaterial=new THREE.MeshBasicMaterial({color:  Math.random() * 0xffffff});
-            var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            targetList.push(sphere);
-            sphere.name=targets[key];
-            cube.add(sphere);
-        }
-        var changeSpherePosition = (name,a,b,c) => {
-            cube.getObjectByName(name).position.set(a,b,c);
+        gui.add(controls, 'addCube');
+        gui.add(controls, 'removeCube');
+        gui.add(controls, 'rotationSpeed',0,0.05);
+        renderer.render( scene, camera );
+
+       // Adding basic animation
+        let animate = function () {
+            scene.traverse(function(e) {
+                if (e instanceof THREE.Group) {
+                    e.rotation.x += controls.rotationSpeed;
+                    e.rotation.y += controls.rotationSpeed;
+                    e.rotation.z += controls.rotationSpeed/2;
+                }
+            })
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera)
         };
-        changeSpherePosition("sphere1",0,0,0);
-        changeSpherePosition("sphere2",5,0,0);
-        changeSpherePosition("sphere3",0,5,0);
-        changeSpherePosition("sphere4",0,0,5);
-        changeSpherePosition("sphere5",5,5,0);
-        changeSpherePosition("sphere6",0,5,5);
-        changeSpherePosition("sphere7",5,0,5);
-        changeSpherePosition("sphere8",5,5,5);
-
-        // Changing cube's position an adding it into the scene
-        cube.position.set(-10,10,10);
-        scene.add( cube );
-
-        // Creating controls, adding events
-        orbitControl = new THREE.OrbitControls( camera, renderer.domElement );
-        var controls = new THREE.DragControls( targetList, camera, renderer.domElement );
-
-        controls.addEventListener( 'dragstart', function ( event ) {
-           cube.material.color=event.object.material.color;
-        } );
-        controls.addEventListener( 'dragend', function ( event ) {
-            console.log('Color changed to: r: '+event.object.material.color.r+', g: '+event.object.material.color.g+', b: '+event.object.material.color.b)
-        });
-
-        // Adding basic animation
-        var animate = function () {
-            requestAnimationFrame( animate );
-            // cube.rotation.x += 0.01;
-            // cube.rotation.y += 0.01;
-            // cube.rotation.z += 0.002;
-
-            renderer.render( scene, camera );
-        };
-
         animate();
